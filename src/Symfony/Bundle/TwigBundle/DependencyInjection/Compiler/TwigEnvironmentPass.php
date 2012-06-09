@@ -14,6 +14,7 @@ namespace Symfony\Bundle\TwigBundle\DependencyInjection\Compiler;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
+use Symfony\Component\DependencyInjection\Definition;
 
 /**
  * Adds tagged twig.extension services to twig service
@@ -26,6 +27,18 @@ class TwigEnvironmentPass implements CompilerPassInterface
     {
         if (false === $container->hasDefinition('twig')) {
             return;
+        }
+
+        //add php template helpers as twig extensions
+        $helperClass = $container->getParameter('twig.extension.phphelper.class');
+        foreach($container->findTaggedServiceIds('templating.helper') as $id=>$attributes) {
+            if (isset($attributes[0]['alias'])) {
+                $definition = new Definition($helperClass);
+                $definition->addTag('twig.extension');
+                $definition->addArgument(new Reference($id));
+
+                $container->setDefinition('twig.phphelper.'.$attributes[0]['alias'], $definition);
+            }
         }
 
         $definition = $container->getDefinition('twig');
